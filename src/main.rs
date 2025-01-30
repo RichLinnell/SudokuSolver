@@ -15,15 +15,26 @@ use grid::Grid;
 
 fn main() -> eframe::Result {
     // Set up the main grid
-    let grid = Grid::new();
+    let mut grid = Grid::new();
+
+    set_test_data(&mut grid);
 
     // Form size.
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([420.0, 540.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([400.0, 540.0]),
         ..Default::default()
     };
 
     eframe::run_native("Sudoku Solver", options, Box::new(|cc| Ok(Box::new(SudokuApp::new(&grid, cc)))))
+}
+
+fn set_test_data(grid: &mut Grid) {
+    grid.set_cell(3, 4, 8);
+    grid.set_cell(6, 2, 1);
+    grid.set_cell(5, 8, 6);
+    grid.set_cell(3, 1, 9);
+    grid.set_cell(0, 5, 2);
+    grid.set_cell(7, 7, 8);
 }
 
 struct SudokuApp<'a> {
@@ -44,7 +55,7 @@ impl<'a> SudokuApp<'a> {
 impl eframe::App for SudokuApp<'_> {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("This is the starting point for my Sudoku Solver.");
+            ui.heading("Click a Cell to set its value.");
             self.grid.render_grid(ui);
             if ui.button("Solve").clicked() {
                 self.is_solving = true;

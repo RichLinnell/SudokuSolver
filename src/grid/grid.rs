@@ -58,9 +58,11 @@ impl Grid {
                                 .stroke(ui.visuals().widgets.noninteractive.fg_stroke)
                                 .outer_margin(egui::Margin{left: left_mgn, right: 0.0, top: 0.0, bottom: 0.0})
                                 .inner_margin(egui::Margin::symmetric(10.0, 4.0))
-                                .fill(egui::Color32::LIGHT_GRAY)
+                                .fill(egui::Color32::GRAY)
                                 .show(ui, |ui| {
-                                    let cell_val = self.get_cell(col, row).unwrap().get_value().to_string(); 
+                                    ui.set_min_width(12.0);
+                                    let cell_val = self.get_cell(col, row).unwrap().get_value().to_string().replace("0", ""); 
+
                                     ui.label(
                                         egui::RichText::new(cell_val)
                                         .color(egui::Color32::BLACK)
