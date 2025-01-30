@@ -70,7 +70,16 @@ impl eframe::App for SudokuApp {
             for r in [0, 3, 6, 1, 4, 7, 2, 5, 8] {
                 ui.horizontal(|ui| {
                     for i in 1..10 {
-                        ui.label(((i+r)%9).to_string().replace("0", "9"));
+                        egui::Frame::default()
+                            .inner_margin(egui::Margin::symmetric(10.0, 5.0))
+                            .stroke(ui.visuals().widgets.noninteractive.bg_stroke)
+                            .fill(egui::Color32::WHITE)
+                            .show(ui, |ui| {
+                                ui.label(egui::RichText::new(((i+r)%9).to_string().replace("0", "9"))
+                                    .color(egui::Color32::BLACK)
+                                    .strong()
+                                );
+                            });
                     };
                 });
             };
