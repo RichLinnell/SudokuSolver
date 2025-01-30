@@ -1,4 +1,4 @@
-use std::result;
+use eframe::egui::Ui;
 
 use super::cell::Cell;
 
@@ -37,6 +37,41 @@ impl Grid {
         let index = (y * 9 + x) as usize;
         self.cells[index].set_value(cell_value_int);
         Ok(())
+    }
+
+    pub fn render_grid(&self, ui: &mut Ui){
+        for row in 0..9 {
+            let mut bottom_pad = 2.0;
+            if (row + 1) % 3 == 0 {
+                bottom_pad = 15.0;
+            }
+            egui::Frame::default()
+                .outer_margin(egui::Margin{left: 5.0, right: 5.0, top: 0.0, bottom: bottom_pad})
+                .show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        for col in 0..9 {
+                            let mut left_mgn = 0.0;
+                            if col % 3 == 0  && col != 0 {
+                                left_mgn = 10.0;
+                            }
+                            egui::Frame::default()
+                                .stroke(ui.visuals().widgets.noninteractive.fg_stroke)
+                                .outer_margin(egui::Margin{left: left_mgn, right: 0.0, top: 0.0, bottom: 0.0})
+                                .inner_margin(egui::Margin::symmetric(10.0, 4.0))
+                                .fill(egui::Color32::LIGHT_GRAY)
+                                .show(ui, |ui| {
+                                    let cell_val = self.get_cell(col, row).unwrap().get_value().to_string(); 
+                                    ui.label(
+                                        egui::RichText::new(cell_val)
+                                        .color(egui::Color32::BLACK)
+                                        .size(20.0)
+                                        .strong()
+                                    );
+                                });
+                        }
+                    })
+                });
+        }
     }
 
     pub fn print_grid(&self) -> Result<(), String> {
