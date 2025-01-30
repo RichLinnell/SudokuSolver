@@ -1,5 +1,6 @@
 mod grid;
 use eframe::egui;
+use egui::warn_if_debug_build;
 use grid::Grid;
 use std::io;
 
@@ -27,23 +28,52 @@ fn main() -> eframe::Result {
         viewport: egui::ViewportBuilder::default().with_inner_size([620.0, 440.0]),
         ..Default::default()
     };
-    eframe::run_simple_native(
-        "Sudoku Solving App - Built in Rust.",
-        options,
-        move |ctx, _frame| {
-            egui::CentralPanel::default().show(ctx, |ui| {
-                ui.heading("Sudoku Solving Application, built in Rust");
+
+    eframe::run_native("Sudoku Solver", options, Box::new(|cc| Ok(Box::new(SudokuApp::new(cc)))))
+
+    // eframe::run_simple_native(
+    //     "Sudoku Solving App - Built in Rust.",
+    //     options,
+    //     move |ctx, _frame| {
+    //         egui::CentralPanel::default().show(ctx, |ui| {
+    //             ui.heading("Sudoku Solving Application, built in Rust");
+    //             ui.horizontal(|ui| {
+    //                 let name_label = ui.label("Your name: ");
+    //                 ui.text_edit_singleline(&mut name)
+    //                     .labelled_by(name_label.id);
+    //             });
+    //             ui.add(egui::Slider::new(&mut age, 0..=120).text("age"));
+    //             if ui.button("Increment").clicked() {
+    //                 age += 1;
+    //             }
+    //             ui.label(format!("Hello '{name}', age {age}"));
+    //         });
+    //     },
+    // )
+}
+
+#[derive(Default)]
+struct SudokuApp{
+    // no data
+}
+
+impl SudokuApp{
+    fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        Self::default()
+    }
+}
+
+impl eframe::App for SudokuApp {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.heading("This is the starting point for my Sudoku Solver.");
+            for r in [0, 3, 6, 1, 4, 7, 2, 5, 8] {
                 ui.horizontal(|ui| {
-                    let name_label = ui.label("Your name: ");
-                    ui.text_edit_singleline(&mut name)
-                        .labelled_by(name_label.id);
+                    for i in 1..10 {
+                        ui.label(((i+r)%9).to_string().replace("0", "9"));
+                    };
                 });
-                ui.add(egui::Slider::new(&mut age, 0..=120).text("age"));
-                if ui.button("Increment").clicked() {
-                    age += 1;
-                }
-                ui.label(format!("Hello '{name}', age {age}"));
-            });
-        },
-    )
+            };
+        });
+    }
 }
