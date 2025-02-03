@@ -1,4 +1,6 @@
 mod grid;
+use std::{thread, thread::sleep, time::Duration};
+use std::sync::{Arc, Mutex};
 use eframe::egui;
 use grid::Grid;
 
@@ -25,7 +27,7 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
 
-    eframe::run_native("Sudoku Solver", options, Box::new(|cc| Ok(Box::new(SudokuApp::new(&grid, cc)))))
+    eframe::run_native("Sudoku Solver", options, Box::new(|cc| Ok(Box::new(SudokuApp::new(grid, cc)))))
 }
 
 fn set_test_data(grid: &mut Grid) {
@@ -37,31 +39,39 @@ fn set_test_data(grid: &mut Grid) {
     grid.set_cell(7, 7, 8);
 }
 
-struct SudokuApp<'a> {
-    // no data
-    pub grid : &'a Grid,
+struct SudokuApp {
+    pub grid : Arc<Mutex<Grid>>,
     pub is_solving: bool,
 }
 
-impl<'a> SudokuApp<'a> {
-    fn new(grid: &'a Grid, cc: &eframe::CreationContext<'_>) -> Self {
+impl SudokuApp {
+    fn new(grid:  Grid, cc: &eframe::CreationContext<'_>) -> Self {
+        let grid_mut = Arc::new(Mutex::new(grid));
         Self {
-            grid,
+            grid: grid_mut,
             is_solving: false,
         }
     }
 }
 
-impl eframe::App for SudokuApp<'_> {
+impl eframe::App for SudokuApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Click a Cell to set its value.");
-            self.grid.render_grid(ui);
+            let view_grid = Arc::clone(&self.grid);
+            (*view_grid.lock().unwrap()).render_grid(ui);
+
             if ui.button("Solve").clicked() {
-                self.is_solving = true;
-            }
-            if self.is_solving {
-                ui.label("Solve in progress");
+                let thread_grid = Arc::clone(&self.grid);
+                thread::spawn(move || {
+                    for y in 0..9 {
+                        for x in 0..9 {
+                            sleep(Duration::from_millis(500));
+                            let mut in_grid = thread_grid.lock().unwrap();
+                            (*in_grid).set_cell(x, y, 2).unwrap();
+                        }
+                    }
+                });
             }
         });
     }

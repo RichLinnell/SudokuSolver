@@ -54,14 +54,18 @@ impl Grid {
                             if col % 3 == 0  && col != 0 {
                                 left_mgn = 10.0;
                             }
+                            let cell_val = self.get_cell(col, row).unwrap().get_value().to_string().replace("0", ""); 
+                            let mut bg_color = egui::Color32::GRAY;
+                            if cell_val == "" {
+                               bg_color = egui::Color32::WHITE; 
+                            }
                             egui::Frame::default()
                                 .stroke(ui.visuals().widgets.noninteractive.fg_stroke)
                                 .outer_margin(egui::Margin{left: left_mgn, right: 0.0, top: 0.0, bottom: 0.0})
                                 .inner_margin(egui::Margin::symmetric(10.0, 4.0))
-                                .fill(egui::Color32::GRAY)
+                                .fill(bg_color)
                                 .show(ui, |ui| {
                                     ui.set_min_width(12.0);
-                                    let cell_val = self.get_cell(col, row).unwrap().get_value().to_string().replace("0", ""); 
 
                                     ui.label(
                                         egui::RichText::new(cell_val)
@@ -74,23 +78,6 @@ impl Grid {
                     })
                 });
         }
-    }
-
-    pub fn print_grid(&self) -> Result<(), String> {
-        println!("-------------------------------------");
-        for y in 0..9 {
-            for x in 0..9 {
-                let cell_value = self.get_cell(x, y)?.get_value();
-                let mut print_str = " ".to_string();
-                if cell_value > 0 {
-                    print_str = cell_value.to_string();
-                }
-                print!("| {} ", print_str);
-            }
-            println!("|");
-            println!("-------------------------------------");
-        }
-        Ok(())
     }
 }
 
