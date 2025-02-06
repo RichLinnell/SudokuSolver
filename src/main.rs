@@ -19,7 +19,7 @@ fn main() -> eframe::Result {
     // Set up the main grid
     let mut grid = Grid::new();
 
-    set_test_data(&mut grid);
+    // set_test_data(&mut grid);
 
     // Form size.
     let options = eframe::NativeOptions {
@@ -73,7 +73,11 @@ fn set_test_data(grid: &mut Grid) {
 
 struct SudokuApp {
     pub grid : Arc<Mutex<Grid>>,
-    pub is_solving: bool,
+    pub editing_row: i32,
+    pub editing_col: i32,
+    pub editing_value: i32,
+    pub new_val: bool,
+    pub editing_val_string: String,
 }
 
 impl SudokuApp {
@@ -81,7 +85,11 @@ impl SudokuApp {
         let grid_mut = Arc::new(Mutex::new(grid));
         Self {
             grid: grid_mut,
-            is_solving: false,
+            editing_row: 9,
+            editing_col: 9,
+            editing_value: 0,
+            new_val: false,
+            editing_val_string: "".to_string()
         }
     }
 }
@@ -90,8 +98,9 @@ impl eframe::App for SudokuApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Click a Cell to set its value.");
+            self.new_val = false;
             let view_grid = Arc::clone(&self.grid);
-            (*view_grid.lock().unwrap()).render_grid(ui);
+            (*view_grid.lock().unwrap()).render_grid(ui, &mut self.editing_row, &mut self.editing_col, &mut self.editing_value, &mut self.new_val);
 
             ctx.request_repaint_after(Duration::from_millis(200));
             if ui.button("Solve").clicked() {
@@ -105,7 +114,7 @@ impl eframe::App for SudokuApp {
                         value_changed = false;
                         for y in 0..9 {
                             for x in 0..9 {
-                                //sleep(Duration::from_millis(5));
+                                // sleep(Duration::from_millis(20));
                                 let possibilities =
                                 {
                                     let in_grid = thread_grid.lock().unwrap();
@@ -121,6 +130,20 @@ impl eframe::App for SudokuApp {
                         }
                     }
                 });
+            };
+            if self.editing_row != 9 {
+                if self.new_val {
+                    self.editing_val_string = self.editing_value.to_string();
+                }
+                let textbox = ui.text_edit_singleline(&mut self.editing_val_string);
+                if textbox.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                    if let Ok(parsed) = self.editing_val_string.parse::<i32>() {
+                        self.editing_value = parsed;
+                        let view_grid = Arc::clone(&self.grid);
+                        (*view_grid.lock().unwrap()).set_cell(self.editing_col, self.editing_row, self.editing_value);
+                        self.editing_row = 9;
+                    }
+                }
             }
         });
     }

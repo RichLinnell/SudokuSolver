@@ -1,4 +1,5 @@
 use eframe::egui::Ui;
+use egui::was_tooltip_open_last_frame;
 
 use super::cell::Cell;
 
@@ -62,7 +63,7 @@ impl<'a> Grid {
         self.cells[index].remove_possibility(value);
     }
     
-    pub fn render_grid(&self, ui: &mut Ui){
+    pub fn render_grid(&self, ui: &mut Ui, edit_row: &mut i32, edit_col: &mut i32, edit_val: &mut i32, new_val: &mut bool){
         for row in 0..9 {
             let mut bottom_pad = 2.0;
             if (row + 1) % 3 == 0 {
@@ -77,9 +78,9 @@ impl<'a> Grid {
                             if col % 3 == 0  && col != 0 {
                                 left_mgn = 10.0;
                             }
-                            let cell_val = self.get_cell(col, row).unwrap().get_value().to_string().replace("0", ""); 
+                            let cell_val = self.get_cell(col, row).unwrap().get_value().to_string().replace("0", " "); 
                             let mut bg_color = egui::Color32::GRAY;
-                            if cell_val == "" {
+                            if cell_val == " " {
                                bg_color = egui::Color32::WHITE; 
                             }
                             egui::Frame::default()
@@ -89,13 +90,18 @@ impl<'a> Grid {
                                 .fill(bg_color)
                                 .show(ui, |ui| {
                                     ui.set_min_width(12.0);
-
-                                    ui.label(
+                                    if(ui.label(
                                         egui::RichText::new(cell_val)
                                         .color(egui::Color32::BLACK)
                                         .size(20.0)
                                         .strong()
-                                    );
+                                    )).clicked(){
+                                        println!("Call to edit {},{}", col, row);
+                                        *new_val = true;
+                                         *edit_row = row;
+                                         *edit_col = col;
+                                         *edit_val = self.get_cell(col, row).unwrap().get_value();
+                                    };
                                 });
                         }
                     })
