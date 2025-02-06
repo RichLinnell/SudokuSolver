@@ -6,10 +6,10 @@ pub struct Grid {
     cells: Vec<Cell>,
 }
 
-impl Grid {
-    pub fn new() -> Grid {
+impl<'a> Grid {
+    pub fn new() -> Self {
         Grid {
-        cells : std::iter::repeat_with(Cell::new).take(81).collect(),
+            cells : std::iter::repeat_with(Cell::new).take(81).collect(),
         }
     }
 
@@ -23,7 +23,7 @@ impl Grid {
         }
         let index = (y * 9 + x) as usize;
         match self.cells.get(index){
-            Some(&ref cell_value) => Ok(&cell_value),
+            Some(cell_value) => Ok(cell_value),
             None => Err("No value found".to_string())
         }
     }
@@ -34,11 +34,34 @@ impl Grid {
             return Err("The cell references are outside of the standard 9x9 grid.  Dimensions must be within 0..9:w".to_string());
         }
 
+        // Set the cell value firstly
         let index = (y * 9 + x) as usize;
-        self.cells[index].set_value(cell_value_int);
-        Ok(())
+        let _ = self.cells[index].set_value(cell_value_int);
+
+        // now for every other cell in the row, remove the value from the possible values
+        // and for every other cell in the col, remove the value from the possible values
+        // Note, remove possuibility will not act on populated cells, so we are safe to call on the cell we set above.
+        for c in 0..9 {
+                self.remove_possibility(c, y, cell_value_int);
+                self.remove_possibility(x, c, cell_value_int);
+        }
+        // same for the other cells in the block
+        // establish block cells - x / 3 * 3 (int division) gives first x cell, same for y. e.g. x=7 (eighth cell) 7 / 3 = 2 * 3 = 6
+        let col = x / 3 * 3;
+        let row = y / 3 * 3;
+        for i in 0..3 {
+            self.remove_possibility(col + i, row, cell_value_int);
+            self.remove_possibility(col + i, row + 1, cell_value_int);
+            self.remove_possibility(col + i, row + 2, cell_value_int);
+        }
+        return Ok(());
     }
 
+    pub fn remove_possibility(&mut self, x:i32, y: i32, value: i32){
+        let index = (y * 9 + x) as usize;
+        self.cells[index].remove_possibility(value);
+    }
+    
     pub fn render_grid(&self, ui: &mut Ui){
         for row in 0..9 {
             let mut bottom_pad = 2.0;

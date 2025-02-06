@@ -31,12 +31,44 @@ fn main() -> eframe::Result {
 }
 
 fn set_test_data(grid: &mut Grid) {
-    grid.set_cell(3, 4, 8);
-    grid.set_cell(6, 2, 1);
-    grid.set_cell(5, 8, 6);
-    grid.set_cell(3, 1, 9);
-    grid.set_cell(0, 5, 2);
-    grid.set_cell(7, 7, 8);
+    grid.set_cell(0, 0, 3);
+    grid.set_cell(5, 0, 2);
+    grid.set_cell(6, 0, 9);
+    grid.set_cell(7, 0, 6);
+    grid.set_cell(0, 1, 1);
+    grid.set_cell(1, 1, 4);
+    grid.set_cell(6, 1, 2);
+    grid.set_cell(8, 1, 8);
+    grid.set_cell(2, 2, 2);
+    grid.set_cell(3, 2, 9);
+    grid.set_cell(4, 2, 7);
+    grid.set_cell(5, 2, 1);
+    grid.set_cell(2, 3, 1);
+    grid.set_cell(3, 3, 4);
+    grid.set_cell(7, 3, 2);
+    grid.set_cell(8, 3, 6);
+    grid.set_cell(0, 4, 2);
+    grid.set_cell(2, 4, 4);
+    grid.set_cell(4, 4, 8);
+    grid.set_cell(5, 4, 5);
+    grid.set_cell(7, 4, 9);
+    grid.set_cell(0, 5, 7);
+    grid.set_cell(2, 5, 8);
+    grid.set_cell(4, 5, 1);
+    grid.set_cell(8, 5, 3);
+    grid.set_cell(0, 6, 4);
+    grid.set_cell(1, 6, 5);
+    grid.set_cell(2, 6, 3);
+    grid.set_cell(7, 6, 1);
+    grid.set_cell(1, 7, 1);
+    grid.set_cell(3, 7, 7);
+    grid.set_cell(4, 7, 5);
+    grid.set_cell(5, 7, 4);
+    grid.set_cell(2, 8, 7);
+    grid.set_cell(3, 8, 1);
+    grid.set_cell(5, 8, 9);
+    grid.set_cell(6, 8, 6);
+    grid.set_cell(8, 8, 4);
 }
 
 struct SudokuApp {
@@ -61,14 +93,31 @@ impl eframe::App for SudokuApp {
             let view_grid = Arc::clone(&self.grid);
             (*view_grid.lock().unwrap()).render_grid(ui);
 
+            ctx.request_repaint_after(Duration::from_millis(200));
             if ui.button("Solve").clicked() {
                 let thread_grid = Arc::clone(&self.grid);
                 thread::spawn(move || {
-                    for y in 0..9 {
-                        for x in 0..9 {
-                            sleep(Duration::from_millis(500));
-                            let mut in_grid = thread_grid.lock().unwrap();
-                            (*in_grid).set_cell(x, y, 2).unwrap();
+                    // here we will place a call to grid solver, passing the mutex to the grid.
+                    // for now, I will simply run through the grid, and populate any cells that have single possibility values with this value,
+                    // and repeat until nothing is left to set
+                    let mut value_changed = true;
+                    while (value_changed){
+                        value_changed = false;
+                        for y in 0..9 {
+                            for x in 0..9 {
+                                //sleep(Duration::from_millis(5));
+                                let possibilities =
+                                {
+                                    let in_grid = thread_grid.lock().unwrap();
+                                    let cell = (*in_grid).get_cell(x, y).unwrap();
+                                    cell.possibilities().clone() // Clone inside limited scope
+                                };
+                                if possibilities.len() == 1 {
+                                    let mut in_grid = thread_grid.lock().unwrap();
+                                    (*in_grid).set_cell(x, y, possibilities[0]);
+                                    value_changed = true;
+                                }
+                            }
                         }
                     }
                 });
