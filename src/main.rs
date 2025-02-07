@@ -1,8 +1,10 @@
 mod grid;
+mod testdata;
 use std::{thread, thread::sleep, time::Duration};
 use std::sync::{Arc, Mutex};
 use eframe::egui;
 use grid::Grid;
+use testdata::TestData;
 
 // TODO:
 // * Move solving into its own module
@@ -21,7 +23,7 @@ fn main() -> eframe::Result {
     // Set up the main grid
     let mut grid = Grid::new();
 
-    // set_test_data(&mut grid);
+    TestData::set_test_data(&mut grid);
 
     // Form size.
     let options = eframe::NativeOptions {
@@ -30,47 +32,6 @@ fn main() -> eframe::Result {
     };
 
     eframe::run_native("Sudoku Solver", options, Box::new(|cc| Ok(Box::new(SudokuApp::new(grid, cc)))))
-}
-
-fn set_test_data(grid: &mut Grid) {
-    grid.set_cell(0, 0, 3);
-    grid.set_cell(5, 0, 2);
-    grid.set_cell(6, 0, 9);
-    grid.set_cell(7, 0, 6);
-    grid.set_cell(0, 1, 1);
-    grid.set_cell(1, 1, 4);
-    grid.set_cell(6, 1, 2);
-    grid.set_cell(8, 1, 8);
-    grid.set_cell(2, 2, 2);
-    grid.set_cell(3, 2, 9);
-    grid.set_cell(4, 2, 7);
-    grid.set_cell(5, 2, 1);
-    grid.set_cell(2, 3, 1);
-    grid.set_cell(3, 3, 4);
-    grid.set_cell(7, 3, 2);
-    grid.set_cell(8, 3, 6);
-    grid.set_cell(0, 4, 2);
-    grid.set_cell(2, 4, 4);
-    grid.set_cell(4, 4, 8);
-    grid.set_cell(5, 4, 5);
-    grid.set_cell(7, 4, 9);
-    grid.set_cell(0, 5, 7);
-    grid.set_cell(2, 5, 8);
-    grid.set_cell(4, 5, 1);
-    grid.set_cell(8, 5, 3);
-    grid.set_cell(0, 6, 4);
-    grid.set_cell(1, 6, 5);
-    grid.set_cell(2, 6, 3);
-    grid.set_cell(7, 6, 1);
-    grid.set_cell(1, 7, 1);
-    grid.set_cell(3, 7, 7);
-    grid.set_cell(4, 7, 5);
-    grid.set_cell(5, 7, 4);
-    grid.set_cell(2, 8, 7);
-    grid.set_cell(3, 8, 1);
-    grid.set_cell(5, 8, 9);
-    grid.set_cell(6, 8, 6);
-    grid.set_cell(8, 8, 4);
 }
 
 struct SudokuApp {

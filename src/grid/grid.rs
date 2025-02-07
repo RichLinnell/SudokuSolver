@@ -1,6 +1,4 @@
 use eframe::egui::Ui;
-use egui::was_tooltip_open_last_frame;
-
 use super::cell::Cell;
 use crate::EditingValues;
 
