@@ -9,7 +9,6 @@ use testdata::TestData;
 use solver::Solver;
 
 // TODO:
-// * Move solving into its own module
 // * Editing in cell, rather than at bottom
 // * Additional "solve" logic
 //  * If only cell in row, col or block that can have that value, then set it
@@ -25,7 +24,7 @@ fn main() -> eframe::Result {
     // Set up the main grid
     let mut grid = Grid::new();
 
-    TestData::set_test_data(&mut grid);
+    TestData::set_test_data_medium(&mut grid);
 
     // Form size.
     let options = eframe::NativeOptions {

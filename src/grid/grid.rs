@@ -40,7 +40,7 @@ impl<'a> Grid {
 
         // now for every other cell in the row, remove the value from the possible values
         // and for every other cell in the col, remove the value from the possible values
-        // Note, remove possuibility will not act on populated cells, so we are safe to call on the cell we set above.
+        // Note, remove possibility will not act on populated cells, so we are safe to call on the cell we set above.
         for c in 0..9 {
                 self.remove_possibility(c, y, cell_value_int);
                 self.remove_possibility(x, c, cell_value_int);
