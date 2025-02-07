@@ -2,6 +2,7 @@ use eframe::egui::Ui;
 use egui::was_tooltip_open_last_frame;
 
 use super::cell::Cell;
+use crate::EditingValues;
 
 pub struct Grid {
     cells: Vec<Cell>,
@@ -63,7 +64,7 @@ impl<'a> Grid {
         self.cells[index].remove_possibility(value);
     }
     
-    pub fn render_grid(&self, ui: &mut Ui, edit_row: &mut i32, edit_col: &mut i32, edit_val: &mut i32, new_val: &mut bool){
+    pub fn render_grid(&self, ui: &mut Ui, edit_values: &mut EditingValues){
         for row in 0..9 {
             let mut bottom_pad = 2.0;
             if (row + 1) % 3 == 0 {
@@ -97,10 +98,10 @@ impl<'a> Grid {
                                         .strong()
                                     )).clicked(){
                                         println!("Call to edit {},{}", col, row);
-                                        *new_val = true;
-                                         *edit_row = row;
-                                         *edit_col = col;
-                                         *edit_val = self.get_cell(col, row).unwrap().get_value();
+                                        edit_values.new_value = true;
+                                        edit_values.row = row;
+                                        edit_values.col = col;
+                                        edit_values.value = self.get_cell(col, row).unwrap().get_value();
                                     };
                                 });
                         }

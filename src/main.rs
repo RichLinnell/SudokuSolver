@@ -4,16 +4,18 @@ use std::sync::{Arc, Mutex};
 use eframe::egui;
 use grid::Grid;
 
-// TODO: I've imported eFrame and eGui libraries.  I now need to work out the format of the screen
-// I'll be showing the user.  It's going to be a Sudoku grid, and I suspect I want to allow the
-// user to move around the cells and add entries.
-// Then I will want some buttons at the bottom :
-//  - Clear Grid
-//  - Solve
-//  - Exit
-//  We'll also need a way to indicate issues - i.e. "This is an unsolvable Grid" and the like
-//  We'll also need a way to indicate duplicate values on the grid - rows with 2 numbers the same
-//  and the like.
+// TODO:
+// * Move solving into its own module
+// * Editing in cell, rather than at bottom
+// * Additional "solve" logic
+//  * If only cell in row, col or block that can have that value, then set it
+//  * Evaluate other solve techniques
+// * Handle impossible grids
+// * Handle logic fails :
+//  * cells with no valid value (possibilities().len == 0)
+//  * Cells with data entered that breaches ruleset
+// * Indicate when solve is in progress
+// * Either handle result objects or remove them
 
 fn main() -> eframe::Result {
     // Set up the main grid
@@ -73,11 +75,27 @@ fn set_test_data(grid: &mut Grid) {
 
 struct SudokuApp {
     pub grid : Arc<Mutex<Grid>>,
-    pub editing_row: i32,
-    pub editing_col: i32,
-    pub editing_value: i32,
-    pub new_val: bool,
-    pub editing_val_string: String,
+    pub edit_values: EditingValues,
+}
+
+pub struct EditingValues{
+    pub row: i32,
+    pub col: i32,
+    pub value: i32,
+    pub value_as_string: String,
+    pub new_value: bool
+}
+
+impl EditingValues{
+    fn new() -> Self{
+        EditingValues { 
+            row: 9,
+            col: 9,
+            value: 0,
+            value_as_string: "".to_string(),
+            new_value: false,
+        }
+    }
 }
 
 impl SudokuApp {
@@ -85,11 +103,7 @@ impl SudokuApp {
         let grid_mut = Arc::new(Mutex::new(grid));
         Self {
             grid: grid_mut,
-            editing_row: 9,
-            editing_col: 9,
-            editing_value: 0,
-            new_val: false,
-            editing_val_string: "".to_string()
+            edit_values: EditingValues::new(),
         }
     }
 }
@@ -98,9 +112,9 @@ impl eframe::App for SudokuApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Click a Cell to set its value.");
-            self.new_val = false;
+            self.edit_values.new_value = false;
             let view_grid = Arc::clone(&self.grid);
-            (*view_grid.lock().unwrap()).render_grid(ui, &mut self.editing_row, &mut self.editing_col, &mut self.editing_value, &mut self.new_val);
+            (*view_grid.lock().unwrap()).render_grid(ui, &mut self.edit_values);
 
             ctx.request_repaint_after(Duration::from_millis(200));
             if ui.button("Solve").clicked() {
@@ -131,17 +145,17 @@ impl eframe::App for SudokuApp {
                     }
                 });
             };
-            if self.editing_row != 9 {
-                if self.new_val {
-                    self.editing_val_string = self.editing_value.to_string();
+            if self.edit_values.row != 9 {
+                if self.edit_values.new_value {
+                    self.edit_values.value_as_string = self.edit_values.value.to_string();
                 }
-                let textbox = ui.text_edit_singleline(&mut self.editing_val_string);
+                let textbox = ui.text_edit_singleline(&mut self.edit_values.value_as_string);
                 if textbox.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                    if let Ok(parsed) = self.editing_val_string.parse::<i32>() {
-                        self.editing_value = parsed;
+                    if let Ok(parsed) = self.edit_values.value_as_string.parse::<i32>() {
+                        self.edit_values.value = parsed;
                         let view_grid = Arc::clone(&self.grid);
-                        (*view_grid.lock().unwrap()).set_cell(self.editing_col, self.editing_row, self.editing_value);
-                        self.editing_row = 9;
+                        (*view_grid.lock().unwrap()).set_cell(self.edit_values.col, self.edit_values.row, self.edit_values.value);
+                        self.edit_values.row = 9;
                     }
                 }
             }
