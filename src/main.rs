@@ -1,10 +1,12 @@
 mod grid;
 mod testdata;
+mod solver;
 use std::{thread, thread::sleep, time::Duration};
 use std::sync::{Arc, Mutex};
 use eframe::egui;
 use grid::Grid;
 use testdata::TestData;
+use solver::Solver;
 
 // TODO:
 // * Move solving into its own module
@@ -81,29 +83,7 @@ impl eframe::App for SudokuApp {
             if ui.button("Solve").clicked() {
                 let thread_grid = Arc::clone(&self.grid);
                 thread::spawn(move || {
-                    // here we will place a call to grid solver, passing the mutex to the grid.
-                    // for now, I will simply run through the grid, and populate any cells that have single possibility values with this value,
-                    // and repeat until nothing is left to set
-                    let mut value_changed = true;
-                    while (value_changed){
-                        value_changed = false;
-                        for y in 0..9 {
-                            for x in 0..9 {
-                                // sleep(Duration::from_millis(20));
-                                let possibilities =
-                                {
-                                    let in_grid = thread_grid.lock().unwrap();
-                                    let cell = (*in_grid).get_cell(x, y).unwrap();
-                                    cell.possibilities().clone() // Clone inside limited scope
-                                };
-                                if possibilities.len() == 1 {
-                                    let mut in_grid = thread_grid.lock().unwrap();
-                                    (*in_grid).set_cell(x, y, possibilities[0]);
-                                    value_changed = true;
-                                }
-                            }
-                        }
-                    }
+                    solver::Solver::solve(thread_grid);
                 });
             };
             if self.edit_values.row != 9 {
