@@ -22,7 +22,7 @@ fn main() -> eframe::Result {
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([390.0, 470.0])
+            .with_inner_size([390.0, 500.0])
             .with_resizable(false),
         ..Default::default()
     };
@@ -33,6 +33,7 @@ fn main() -> eframe::Result {
 struct SudokuApp {
     pub grid: Arc<Mutex<Grid>>,
     pub selected_cell: Option<(i32, i32)>,
+    pub status: Arc<Mutex<String>>,
 }
 
 impl SudokuApp {
@@ -40,6 +41,7 @@ impl SudokuApp {
         Self {
             grid: Arc::new(Mutex::new(grid)),
             selected_cell: None,
+            status: Arc::new(Mutex::new(String::new())),
         }
     }
 }
@@ -49,10 +51,16 @@ impl eframe::App for SudokuApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Click a cell, type 1-9. Delete to clear.");
 
+            // Compute conflicts for display
+            let conflicts = {
+                let grid = self.grid.lock().unwrap();
+                grid.find_conflicts()
+            };
+
             // Render grid — returns which cell was clicked (if any)
             let clicked = {
                 let grid = self.grid.lock().unwrap();
-                grid.render_grid(ui, self.selected_cell)
+                grid.render_grid(ui, self.selected_cell, &conflicts)
             };
 
             if let Some(cell) = clicked {
@@ -71,11 +79,16 @@ impl eframe::App for SudokuApp {
                         let mut grid = self.grid.lock().unwrap();
                         let _ = grid.set_cell(col, row, num);
                         grid.mark_user_entered(col, row);
+                        // Clear status on user edit
+                        let mut s = self.status.lock().unwrap();
+                        *s = String::new();
                     }
                 }
                 if ui.input(|i| i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace)) {
                     let mut grid = self.grid.lock().unwrap();
                     grid.clear_cell(col, row);
+                    let mut s = self.status.lock().unwrap();
+                    *s = String::new();
                 }
                 if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                     self.selected_cell = None;
@@ -111,8 +124,9 @@ impl eframe::App for SudokuApp {
 
                 if ui.add(solve_btn).clicked() {
                     let thread_grid = Arc::clone(&self.grid);
+                    let thread_status = Arc::clone(&self.status);
                     thread::spawn(move || {
-                        Solver::solve(thread_grid);
+                        Solver::solve(thread_grid, thread_status);
                     });
                 }
 
@@ -132,8 +146,36 @@ impl eframe::App for SudokuApp {
                     let mut grid = self.grid.lock().unwrap();
                     grid.clear_all();
                     self.selected_cell = None;
+                    let mut s = self.status.lock().unwrap();
+                    *s = String::new();
                 }
             });
+
+            // Display status message
+            let status_text = {
+                let s = self.status.lock().unwrap();
+                s.clone()
+            };
+            if !status_text.is_empty() {
+                ui.add_space(6.0);
+                let (color, text) = if status_text.contains("unsolvable") || status_text.contains("conflicting") {
+                    (egui::Color32::from_rgb(200, 50, 50), &status_text)
+                } else if status_text.contains("brute force...") {
+                    (egui::Color32::from_rgb(200, 150, 50), &status_text)
+                } else if status_text.contains("Solved") || status_text.contains("solved") {
+                    (egui::Color32::from_rgb(50, 160, 50), &status_text)
+                } else {
+                    (egui::Color32::from_rgb(70, 130, 180), &status_text)
+                };
+                ui.horizontal(|ui| {
+                    ui.label(
+                        egui::RichText::new(text.as_str())
+                            .color(color)
+                            .size(14.0)
+                            .strong()
+                    );
+                });
+            }
         });
     }
 }

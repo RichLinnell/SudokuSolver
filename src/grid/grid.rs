@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use eframe::egui;
 use eframe::egui::Ui;
 use super::cell::Cell;
@@ -139,14 +140,99 @@ impl Grid {
         self.cells = std::iter::repeat_with(Cell::new).take(81).collect();
     }
 
+    /// Check if the grid is fully solved (all cells have a value).
+    pub fn is_solved(&self) -> bool {
+        self.cells.iter().all(|c| c.get_value() > 0)
+    }
+
+    /// Find all cells involved in conflicts (duplicate values in same row, column, or block).
+    /// Returns a set of (col, row) coordinates.
+    pub fn find_conflicts(&self) -> HashSet<(i32, i32)> {
+        let mut conflicts = HashSet::new();
+
+        // Check rows
+        for row in 0..9_i32 {
+            for val in 1..=9 {
+                let cells_with_val: Vec<i32> = (0..9_i32)
+                    .filter(|&col| self.cells[(row * 9 + col) as usize].get_value() == val)
+                    .collect();
+                if cells_with_val.len() > 1 {
+                    for col in cells_with_val {
+                        conflicts.insert((col, row));
+                    }
+                }
+            }
+        }
+
+        // Check columns
+        for col in 0..9_i32 {
+            for val in 1..=9 {
+                let cells_with_val: Vec<i32> = (0..9_i32)
+                    .filter(|&row| self.cells[(row * 9 + col) as usize].get_value() == val)
+                    .collect();
+                if cells_with_val.len() > 1 {
+                    for row in cells_with_val {
+                        conflicts.insert((col, row));
+                    }
+                }
+            }
+        }
+
+        // Check 3x3 blocks
+        for bx in 0..3_i32 {
+            for by in 0..3_i32 {
+                for val in 1..=9 {
+                    let mut cells_with_val = Vec::new();
+                    for dy in 0..3 {
+                        for dx in 0..3 {
+                            let x = bx * 3 + dx;
+                            let y = by * 3 + dy;
+                            if self.cells[(y * 9 + x) as usize].get_value() == val {
+                                cells_with_val.push((x, y));
+                            }
+                        }
+                    }
+                    if cells_with_val.len() > 1 {
+                        for (x, y) in cells_with_val {
+                            conflicts.insert((x, y));
+                        }
+                    }
+                }
+            }
+        }
+
+        conflicts
+    }
+
+    /// Read all 81 cell values as a flat array. Used by brute force solver.
+    pub fn get_values(&self) -> [i32; 81] {
+        let mut vals = [0i32; 81];
+        for (i, cell) in self.cells.iter().enumerate() {
+            vals[i] = cell.get_value();
+        }
+        vals
+    }
+
+    /// Apply a complete solution array (81 values) to the grid.
+    pub fn apply_solution(&mut self, solution: &[i32; 81]) {
+        for y in 0..9_i32 {
+            for x in 0..9_i32 {
+                let idx = (y * 9 + x) as usize;
+                if self.cells[idx].get_value() == 0 && solution[idx] > 0 {
+                    let _ = self.set_cell(x, y, solution[idx]);
+                }
+            }
+        }
+    }
+
     pub fn remove_possibility(&mut self, x:i32, y: i32, value: i32) -> bool {
         let index = (y * 9 + x) as usize;
         self.cells[index].remove_possibility(value)
     }
 
-    /// Render the grid. Highlights the selected cell.
+    /// Render the grid. Highlights the selected cell and shows conflicts.
     /// Returns the (col, row) of a clicked cell, or None.
-    pub fn render_grid(&self, ui: &mut Ui, selected: Option<(i32, i32)>) -> Option<(i32, i32)> {
+    pub fn render_grid(&self, ui: &mut Ui, selected: Option<(i32, i32)>, conflicts: &HashSet<(i32, i32)>) -> Option<(i32, i32)> {
         let mut clicked: Option<(i32, i32)> = None;
         for row in 0..9 {
             let mut bottom_pad = 2.0;
@@ -166,7 +252,10 @@ impl Grid {
                             let cell_val = cell.get_value().to_string().replace("0", " ");
                             let is_user = cell.is_user_entered();
                             let is_selected = selected == Some((col, row));
-                            let bg_color = if is_selected {
+                            let is_conflict = conflicts.contains(&(col, row));
+                            let bg_color = if is_conflict {
+                                egui::Color32::from_rgb(255, 180, 180) // light red/pink for conflicts
+                            } else if is_selected {
                                 egui::Color32::from_rgb(173, 216, 230) // light blue
                             } else if cell_val == " " {
                                 egui::Color32::WHITE
