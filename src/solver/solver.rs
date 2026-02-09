@@ -12,13 +12,28 @@ struct CellRef {
 }
 
 impl Solver {
-    pub fn solve(thread_grid: Arc<Mutex<Grid>>) {
+    pub fn solve(thread_grid: Arc<Mutex<Grid>>, status: Arc<Mutex<String>>) {
+        // Check for conflicts before starting
+        {
+            let g = thread_grid.lock().unwrap();
+            if !g.find_conflicts().is_empty() {
+                let mut s = status.lock().unwrap();
+                *s = "Cannot solve: grid has conflicting values".to_string();
+                return;
+            }
+        }
+
+        {
+            let mut s = status.lock().unwrap();
+            *s = "Solving with logic...".to_string();
+        }
+
+        // Phase 1: Logic-based solving
         let mut iterations = 0;
         let mut progress = true;
         while progress {
             progress = false;
 
-            // Candidate elimination techniques (reduce possibilities without setting values)
             Self::reduce_naked_pairs_in_all_units(&thread_grid, &mut progress);
             Self::reduce_naked_triples_in_all_units(&thread_grid, &mut progress);
             Self::reduce_hidden_pairs_in_all_units(&thread_grid, &mut progress);
@@ -29,7 +44,6 @@ impl Solver {
             Self::reduce_swordfish(&thread_grid, &mut progress);
             Self::reduce_y_wing(&thread_grid, &mut progress);
 
-            // Value-setting techniques
             Self::set_only_one_possibility_values(&thread_grid, &mut progress);
             Self::set_when_only_one_cell_in_row_supports_value(&thread_grid, &mut progress);
             Self::set_when_only_one_cell_in_column_supports_value(&thread_grid, &mut progress);
@@ -37,7 +51,102 @@ impl Solver {
 
             iterations += 1;
         }
-        println!("Ending the solve process after {} iteration(s).", iterations);
+        println!("Logic solver finished after {} iteration(s).", iterations);
+
+        // Check if solved by logic
+        {
+            let g = thread_grid.lock().unwrap();
+            if g.is_solved() {
+                let mut s = status.lock().unwrap();
+                *s = "Solved with logic!".to_string();
+                return;
+            }
+        }
+
+        // Phase 2: Brute force fallback
+        {
+            let mut s = status.lock().unwrap();
+            *s = "Logic exhausted, trying brute force...".to_string();
+        }
+
+        let values = {
+            let g = thread_grid.lock().unwrap();
+            g.get_values()
+        };
+
+        if let Some(solution) = Self::brute_force(&values) {
+            let mut g = thread_grid.lock().unwrap();
+            g.apply_solution(&solution);
+            let mut s = status.lock().unwrap();
+            *s = "Solved with brute force".to_string();
+        } else {
+            let mut s = status.lock().unwrap();
+            *s = "This puzzle is unsolvable".to_string();
+        }
+    }
+
+    // =========================================================================
+    // Brute force backtracking solver
+    // =========================================================================
+
+    /// Solve the puzzle using backtracking. Works on a flat [i32; 81] copy.
+    /// Returns Some(solution) if solved, None if unsolvable.
+    fn brute_force(grid: &[i32; 81]) -> Option<[i32; 81]> {
+        let mut board = *grid;
+        if Self::backtrack(&mut board) {
+            Some(board)
+        } else {
+            None
+        }
+    }
+
+    fn backtrack(board: &mut [i32; 81]) -> bool {
+        // Find next empty cell
+        let empty = board.iter().position(|&v| v == 0);
+        let idx = match empty {
+            Some(i) => i,
+            None => return true, // All filled — solved
+        };
+
+        let row = (idx / 9) as i32;
+        let col = (idx % 9) as i32;
+
+        for val in 1..=9 {
+            if Self::is_valid_placement(board, row, col, val) {
+                board[idx] = val;
+                if Self::backtrack(board) {
+                    return true;
+                }
+                board[idx] = 0;
+            }
+        }
+        false
+    }
+
+    fn is_valid_placement(board: &[i32; 81], row: i32, col: i32, val: i32) -> bool {
+        // Check row
+        for c in 0..9 {
+            if board[(row * 9 + c) as usize] == val {
+                return false;
+            }
+        }
+        // Check column
+        for r in 0..9 {
+            if board[(r * 9 + col) as usize] == val {
+                return false;
+            }
+        }
+        // Check 3x3 block
+        let bx = col / 3 * 3;
+        let by = row / 3 * 3;
+        for dy in 0..3 {
+            for dx in 0..3 {
+                if board[((by + dy) * 9 + (bx + dx)) as usize] == val {
+                    return false;
+                }
+            }
+        }
+        true
     }
 
     // --- Helper methods for building cell reference sets ---
