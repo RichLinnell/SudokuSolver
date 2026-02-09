@@ -21,7 +21,9 @@ fn main() -> eframe::Result {
     let grid = TestData::expert();
 
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([400.0, 540.0]),
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([390.0, 470.0])
+            .with_resizable(false),
         ..Default::default()
     };
 
@@ -95,14 +97,38 @@ impl eframe::App for SudokuApp {
 
             ctx.request_repaint_after(Duration::from_millis(200));
 
+            ui.add_space(4.0);
             ui.horizontal(|ui| {
-                if ui.button("Solve").clicked() {
+                let solve_btn = egui::Button::new(
+                    egui::RichText::new("Solve")
+                        .size(15.0)
+                        .strong()
+                        .color(egui::Color32::WHITE)
+                )
+                .fill(egui::Color32::from_rgb(70, 130, 180))
+                .min_size(egui::vec2(160.0, 34.0))
+                .rounding(6.0);
+
+                if ui.add(solve_btn).clicked() {
                     let thread_grid = Arc::clone(&self.grid);
                     thread::spawn(move || {
                         Solver::solve(thread_grid);
                     });
                 }
-                if ui.button("Clear Grid").clicked() {
+
+                ui.add_space(8.0);
+
+                let clear_btn = egui::Button::new(
+                    egui::RichText::new("Clear Grid")
+                        .size(15.0)
+                        .strong()
+                        .color(egui::Color32::WHITE)
+                )
+                .fill(egui::Color32::from_rgb(180, 100, 100))
+                .min_size(egui::vec2(160.0, 34.0))
+                .rounding(6.0);
+
+                if ui.add(clear_btn).clicked() {
                     let mut grid = self.grid.lock().unwrap();
                     grid.clear_all();
                     self.selected_cell = None;
