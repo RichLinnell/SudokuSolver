@@ -57,9 +57,9 @@ impl<'a> Grid {
         return Ok(());
     }
 
-    pub fn remove_possibility(&mut self, x:i32, y: i32, value: i32){
+    pub fn remove_possibility(&mut self, x:i32, y: i32, value: i32) -> bool {
         let index = (y * 9 + x) as usize;
-        self.cells[index].remove_possibility(value);
+        self.cells[index].remove_possibility(value)
     }
     
     pub fn render_grid(&self, ui: &mut Ui, edit_values: &mut EditingValues){

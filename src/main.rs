@@ -10,9 +10,6 @@ use solver::Solver;
 
 // TODO:
 // * Editing in cell, rather than at bottom
-// * Additional "solve" logic
-//  * If only cell in row, col or block that can have that value, then set it
-//  * Evaluate other solve techniques
 // * Handle impossible grids
 // * Handle logic fails :
 //  * cells with no valid value (possibilities().len == 0)
