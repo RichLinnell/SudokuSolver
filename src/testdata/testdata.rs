@@ -71,4 +71,45 @@ impl TestData {
         grid.set_cell(3, 8, 7);
         grid.set_cell(7, 8, 1);
     }
+
+    pub fn set_test_data_hard(grid: &mut Grid) {
+        // A puzzle that requires naked pairs, pointing pairs, and
+        // box-line reduction beyond basic singles techniques.
+        // 1 . . | . . 7 | . 9 .
+        // . 3 . | . 2 . | . . 8
+        // . . 9 | 6 . . | 5 . .
+        // ------+-------+------
+        // . . 5 | 3 . . | 9 . .
+        // . 1 . | . 8 . | . 2 .
+        // 6 . . | . . 4 | . . 3
+        // ------+-------+------
+        // . . 7 | . . 8 | . . .
+        // . . . | . 3 . | . 8 .
+        // . 2 . | 4 . . | . . 1
+        grid.set_cell(0, 0, 1);
+        grid.set_cell(5, 0, 7);
+        grid.set_cell(7, 0, 9);
+        grid.set_cell(1, 1, 3);
+        grid.set_cell(4, 1, 2);
+        grid.set_cell(8, 1, 8);
+        grid.set_cell(2, 2, 9);
+        grid.set_cell(3, 2, 6);
+        grid.set_cell(6, 2, 5);
+        grid.set_cell(2, 3, 5);
+        grid.set_cell(3, 3, 3);
+        grid.set_cell(6, 3, 9);
+        grid.set_cell(1, 4, 1);
+        grid.set_cell(4, 4, 8);
+        grid.set_cell(7, 4, 2);
+        grid.set_cell(0, 5, 6);
+        grid.set_cell(5, 5, 4);
+        grid.set_cell(8, 5, 3);
+        grid.set_cell(2, 6, 7);
+        grid.set_cell(5, 6, 8);
+        grid.set_cell(4, 7, 3);
+        grid.set_cell(7, 7, 8);
+        grid.set_cell(1, 8, 2);
+        grid.set_cell(3, 8, 4);
+        grid.set_cell(8, 8, 1);
+    }
 }

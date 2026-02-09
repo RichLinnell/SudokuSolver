@@ -23,11 +23,13 @@ impl Cell {
         self.value
     }
 
-    pub fn remove_possibility(&mut self, value: i32) {
+    pub fn remove_possibility(&mut self, value: i32) -> bool {
         if self.value > 0 {
-            return;
+            return false;
         }
-       self.possible_values.retain(|&x| x != value);
+        let len_before = self.possible_values.len();
+        self.possible_values.retain(|&x| x != value);
+        self.possible_values.len() < len_before
     }
 
     pub fn possibilities(& self) -> &Vec<i32> {
