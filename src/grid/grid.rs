@@ -1,16 +1,49 @@
+use eframe::egui;
 use eframe::egui::Ui;
 use super::cell::Cell;
-use crate::EditingValues;
 
 pub struct Grid {
     cells: Vec<Cell>,
 }
 
-impl<'a> Grid {
+impl Grid {
     pub fn new() -> Self {
         Grid {
             cells : std::iter::repeat_with(Cell::new).take(81).collect(),
         }
+    }
+
+    /// Parse a puzzle from a string of digits.
+    /// Use 0 (or any non-1-9 digit) for blank cells.
+    /// All non-digit characters (spaces, newlines, etc.) are ignored.
+    ///
+    /// Example:
+    /// ```text
+    /// 000 050 030
+    /// 000 704 000
+    /// 100 300 049
+    /// 000 490 281
+    /// 032 580 900
+    /// 000 000 000
+    /// 965 000 000
+    /// 000 000 000
+    /// 007 200 000
+    /// ```
+    pub fn from_string(input: &str) -> Grid {
+        let mut grid = Grid::new();
+        let digits: Vec<i32> = input.chars()
+            .filter(|c| c.is_ascii_digit())
+            .map(|c| c.to_digit(10).unwrap() as i32)
+            .collect();
+
+        for (i, &val) in digits.iter().enumerate().take(81) {
+            if val > 0 {
+                let x = (i % 9) as i32;
+                let y = (i / 9) as i32;
+                let _ = grid.set_cell(x, y, val);
+            }
+        }
+        grid
     }
 
     pub fn add_cell(&mut self, cell: Cell) {
@@ -27,11 +60,11 @@ impl<'a> Grid {
             None => Err("No value found".to_string())
         }
     }
-    
+
     pub(crate) fn set_cell(& mut self, x: i32, y: i32, cell_value_int: i32) -> Result<(), String> {
-        
+
         if x<0 || x>8 || y<0 || y>8 {
-            return Err("The cell references are outside of the standard 9x9 grid.  Dimensions must be within 0..9:w".to_string());
+            return Err("The cell references are outside of the standard 9x9 grid.  Dimensions must be within 0..9".to_string());
         }
 
         // Set the cell value firstly
@@ -57,12 +90,53 @@ impl<'a> Grid {
         return Ok(());
     }
 
+    /// Clear a cell value and recalculate all possibilities from scratch.
+    pub fn clear_cell(&mut self, x: i32, y: i32) {
+        let index = (y * 9 + x) as usize;
+        self.cells[index].clear();
+        self.recalculate_possibilities();
+    }
+
+    /// Reset all unsolved cells' possibilities and re-propagate constraints
+    /// from every solved cell. Called after clearing a cell.
+    fn recalculate_possibilities(&mut self) {
+        // Reset all unsolved cells to full possibility set
+        for cell in &mut self.cells {
+            if cell.get_value() == 0 {
+                cell.clear();
+            }
+        }
+        // Re-propagate constraints from each solved cell
+        for y in 0..9_i32 {
+            for x in 0..9_i32 {
+                let index = (y * 9 + x) as usize;
+                let val = self.cells[index].get_value();
+                if val > 0 {
+                    for c in 0..9 {
+                        self.remove_possibility(c, y, val);
+                        self.remove_possibility(x, c, val);
+                    }
+                    let bx = x / 3 * 3;
+                    let by = y / 3 * 3;
+                    for dy in 0..3 {
+                        for dx in 0..3 {
+                            self.remove_possibility(bx + dx, by + dy, val);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn remove_possibility(&mut self, x:i32, y: i32, value: i32) -> bool {
         let index = (y * 9 + x) as usize;
         self.cells[index].remove_possibility(value)
     }
-    
-    pub fn render_grid(&self, ui: &mut Ui, edit_values: &mut EditingValues){
+
+    /// Render the grid. Highlights the selected cell.
+    /// Returns the (col, row) of a clicked cell, or None.
+    pub fn render_grid(&self, ui: &mut Ui, selected: Option<(i32, i32)>) -> Option<(i32, i32)> {
+        let mut clicked: Option<(i32, i32)> = None;
         for row in 0..9 {
             let mut bottom_pad = 2.0;
             if (row + 1) % 3 == 0 {
@@ -77,11 +151,15 @@ impl<'a> Grid {
                             if col % 3 == 0  && col != 0 {
                                 left_mgn = 10.0;
                             }
-                            let cell_val = self.get_cell(col, row).unwrap().get_value().to_string().replace("0", " "); 
-                            let mut bg_color = egui::Color32::GRAY;
-                            if cell_val == " " {
-                               bg_color = egui::Color32::WHITE; 
-                            }
+                            let cell_val = self.get_cell(col, row).unwrap().get_value().to_string().replace("0", " ");
+                            let is_selected = selected == Some((col, row));
+                            let bg_color = if is_selected {
+                                egui::Color32::from_rgb(173, 216, 230) // light blue
+                            } else if cell_val == " " {
+                                egui::Color32::WHITE
+                            } else {
+                                egui::Color32::GRAY
+                            };
                             egui::Frame::default()
                                 .stroke(ui.visuals().widgets.noninteractive.fg_stroke)
                                 .outer_margin(egui::Margin{left: left_mgn, right: 0.0, top: 0.0, bottom: 0.0})
@@ -89,23 +167,20 @@ impl<'a> Grid {
                                 .fill(bg_color)
                                 .show(ui, |ui| {
                                     ui.set_min_width(12.0);
-                                    if(ui.label(
+                                    if ui.label(
                                         egui::RichText::new(cell_val)
                                         .color(egui::Color32::BLACK)
                                         .size(20.0)
                                         .strong()
-                                    )).clicked(){
-                                        println!("Call to edit {},{}", col, row);
-                                        edit_values.new_value = true;
-                                        edit_values.row = row;
-                                        edit_values.col = col;
-                                        edit_values.value = self.get_cell(col, row).unwrap().get_value();
+                                    ).clicked() {
+                                        clicked = Some((col, row));
                                     };
                                 });
                         }
                     })
                 });
         }
+        clicked
     }
 }
 

@@ -32,6 +32,11 @@ impl Cell {
         self.possible_values.len() < len_before
     }
 
+    pub fn clear(&mut self) {
+        self.value = 0;
+        self.possible_values = (1..=9).collect();
+    }
+
     pub fn possibilities(& self) -> &Vec<i32> {
         &self.possible_values
     }
