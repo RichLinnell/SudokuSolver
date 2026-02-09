@@ -128,6 +128,17 @@ impl Grid {
         }
     }
 
+    /// Mark a cell as user-entered (for display purposes).
+    pub fn mark_user_entered(&mut self, x: i32, y: i32) {
+        let index = (y * 9 + x) as usize;
+        self.cells[index].set_user_entered(true);
+    }
+
+    /// Reset the entire grid to empty.
+    pub fn clear_all(&mut self) {
+        self.cells = std::iter::repeat_with(Cell::new).take(81).collect();
+    }
+
     pub fn remove_possibility(&mut self, x:i32, y: i32, value: i32) -> bool {
         let index = (y * 9 + x) as usize;
         self.cells[index].remove_possibility(value)
@@ -151,12 +162,16 @@ impl Grid {
                             if col % 3 == 0  && col != 0 {
                                 left_mgn = 10.0;
                             }
-                            let cell_val = self.get_cell(col, row).unwrap().get_value().to_string().replace("0", " ");
+                            let cell = self.get_cell(col, row).unwrap();
+                            let cell_val = cell.get_value().to_string().replace("0", " ");
+                            let is_user = cell.is_user_entered();
                             let is_selected = selected == Some((col, row));
                             let bg_color = if is_selected {
                                 egui::Color32::from_rgb(173, 216, 230) // light blue
                             } else if cell_val == " " {
                                 egui::Color32::WHITE
+                            } else if is_user {
+                                egui::Color32::from_rgb(144, 238, 144) // light green for user-entered
                             } else {
                                 egui::Color32::GRAY
                             };

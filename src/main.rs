@@ -68,6 +68,7 @@ impl eframe::App for SudokuApp {
                     if ui.input(|i| i.key_pressed(key)) {
                         let mut grid = self.grid.lock().unwrap();
                         let _ = grid.set_cell(col, row, num);
+                        grid.mark_user_entered(col, row);
                     }
                 }
                 if ui.input(|i| i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace)) {
@@ -94,12 +95,19 @@ impl eframe::App for SudokuApp {
 
             ctx.request_repaint_after(Duration::from_millis(200));
 
-            if ui.button("Solve").clicked() {
-                let thread_grid = Arc::clone(&self.grid);
-                thread::spawn(move || {
-                    Solver::solve(thread_grid);
-                });
-            };
+            ui.horizontal(|ui| {
+                if ui.button("Solve").clicked() {
+                    let thread_grid = Arc::clone(&self.grid);
+                    thread::spawn(move || {
+                        Solver::solve(thread_grid);
+                    });
+                }
+                if ui.button("Clear Grid").clicked() {
+                    let mut grid = self.grid.lock().unwrap();
+                    grid.clear_all();
+                    self.selected_cell = None;
+                }
+            });
         });
     }
 }

@@ -1,12 +1,14 @@
 pub struct Cell {
     value: i32,
-    possible_values : Vec<i32>
+    possible_values : Vec<i32>,
+    user_entered: bool,
 }
 
 impl Cell {
     pub fn new() -> Self {
         Cell { value: 0,
         possible_values: (1..=9).collect(),
+        user_entered: false,
         }
     }
 
@@ -35,6 +37,15 @@ impl Cell {
     pub fn clear(&mut self) {
         self.value = 0;
         self.possible_values = (1..=9).collect();
+        self.user_entered = false;
+    }
+
+    pub fn is_user_entered(&self) -> bool {
+        self.user_entered
+    }
+
+    pub fn set_user_entered(&mut self, entered: bool) {
+        self.user_entered = entered;
     }
 
     pub fn possibilities(& self) -> &Vec<i32> {
